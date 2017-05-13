@@ -1,14 +1,17 @@
 package challenge.web;
 
+import challenge.domain.ChallengeUserPrincipal;
+import challenge.domain.Person;
 import challenge.domain.Tweet;
+import challenge.services.IChallengeService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.RowMapper;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Created by gaopeng on 5/11/17.
@@ -17,23 +20,64 @@ import java.util.List;
 public class ChallengeController {
 
     @Autowired
-    NamedParameterJdbcTemplate jdbcTemplate;
-
+    private IChallengeService challengeService;
 
     @RequestMapping(value = "messages", method = RequestMethod.GET)
     public @ResponseBody
-    List<Tweet> getTweets(@RequestParam(name = "search", required = false) String search) {
+    List<Tweet> getMessages(@RequestParam(name = "search", required = false) String search) {
+        ChallengeUserPrincipal currentUser = getChallengeUserPrincipal();
 
-        String query = "SELECT * FROM TWEET";
+        List<Person> followedPeople = challengeService.getFolloweesByPerson(currentUser.getPerson());
+
+        return challengeService.getTweetsByPeople(followedPeople).stream()
+                .filter(t->t.getContent().contains(search == null ? "" : search))
+                .collect(Collectors.toList());
+    }
+
+    private ChallengeUserPrincipal getChallengeUserPrincipal() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return (ChallengeUserPrincipal) authentication.getPrincipal();
+    }
+
+    @RequestMapping(value = "followees", method = RequestMethod.GET)
+    public @ResponseBody List<Person> getFollowing() {
+        ChallengeUserPrincipal currentUser = getChallengeUserPrincipal();
+
+        return challengeService.getFolloweesByPerson(currentUser.getPerson());
+    }
+
+    @RequestMapping(value = "followers", method = RequestMethod.GET)
+    public @ResponseBody List<Person> getFollowers() {
+        ChallengeUserPrincipal currentUser = getChallengeUserPrincipal();
+
+        return challengeService.getFollowersByPerson(currentUser.getPerson());
+    }
+
+    @RequestMapping(value = "follow/{followeePersonId}", method = RequestMethod.PUT)
+    @ResponseStatus(value = HttpStatus.OK)
+    public void follow(@PathVariable Long followeePersonId) {
+        ChallengeUserPrincipal currentUser = getChallengeUserPrincipal();
+        Long followerPersonId = currentUser.getPerson().getId();
 
 
-		return jdbcTemplate.query(query, new RowMapper<Tweet>() {
-			public Tweet mapRow(ResultSet resultSet, int rowNum)
-					throws SQLException {
-				return new Tweet(resultSet.getLong("ID"), resultSet.getLong("PERSON_ID"), resultSet.getString("CONTENT"));
-			}
-		});
+        challengeService.insertFollowerFollowee(followerPersonId, followeePersonId);
 
 
     }
+
+    @RequestMapping(value = "unfollow/{followeePersonId}", method = RequestMethod.DELETE)
+    @ResponseStatus(value = HttpStatus.OK)
+    public void unfollow(@PathVariable Long followeePersonId) {
+        ChallengeUserPrincipal currentUser = getChallengeUserPrincipal();
+        Person follower = currentUser.getPerson();
+        Person followee = challengeService.getPersonById(followeePersonId);
+
+        List<Person> currentFollowers = challengeService.getFollowersByPerson(followee);
+        if(!currentFollowers.contains(follower)){
+            challengeService.deleteFollowerFollowee(follower, followee);
+        }
+
+    }
+
+
 }

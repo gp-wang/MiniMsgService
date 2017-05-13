@@ -3,6 +3,7 @@ package challenge.domain;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -15,6 +16,13 @@ public class ChallengeUserPrincipal implements UserDetails{
     private final Person user;
     private final Collection<SimpleGrantedAuthority> role;
 
+    public Person getPerson() {
+        return user;
+    }
+
+    public Collection<SimpleGrantedAuthority> getRole() {
+        return role;
+    }
 
     public ChallengeUserPrincipal(Person user) {
         role = new ArrayList<>();
@@ -29,7 +37,8 @@ public class ChallengeUserPrincipal implements UserDetails{
 
     @Override
     public String getPassword() {
-        return "";
+        //dummy empty password
+        return new BCryptPasswordEncoder().encode("");
     }
 
     @Override
