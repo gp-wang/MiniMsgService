@@ -120,7 +120,6 @@ public class ChallengeDAOImpl implements IChallengeDAO {
     public void deleteFollowerFollowee(Long followerPersonId, Long followeePersonId) throws SQLException{
         String query = "delete from followers where person_id = :followee_person_id and follower_person_id = :follower_person_id)";
 
-
         MapSqlParameterSource mapping = new MapSqlParameterSource();
         mapping.addValue("followee_person_id", followeePersonId);
         mapping.addValue("follower_person_id", followerPersonId);

@@ -71,5 +71,10 @@ public interface IChallengeDAO {
      */
     public void insertFollowerFollowee(Long followerPersonId, Long followeePersonId) throws SQLException;
 
+    /**
+     * Delete followee-follower pair by their ids
+     * @param followerPersonId
+     * @param followeePersonId
+     */
     public void deleteFollowerFollowee(Long followerPersonId, Long followeePersonId) throws SQLException;
 }

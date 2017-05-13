@@ -10,7 +10,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.sql.SQLException;
 import java.util.List;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 /**
@@ -18,6 +20,8 @@ import java.util.stream.Collectors;
  */
 @RestController
 public class ChallengeController {
+
+    Logger s_log = Logger.getLogger(ChallengeController.class.getName());
 
     @Autowired
     private IChallengeService challengeService;
@@ -53,14 +57,18 @@ public class ChallengeController {
         return challengeService.getFollowersByPerson(currentUser.getPerson());
     }
 
+
     @RequestMapping(value = "follow/{followeePersonId}", method = RequestMethod.PUT)
     @ResponseStatus(value = HttpStatus.OK)
     public void follow(@PathVariable Long followeePersonId) {
         ChallengeUserPrincipal currentUser = getChallengeUserPrincipal();
         Long followerPersonId = currentUser.getPerson().getId();
 
-
-        challengeService.insertFollowerFollowee(followerPersonId, followeePersonId);
+        try {
+            challengeService.insertFollowerFollowee(followerPersonId, followeePersonId);
+        } catch (SQLException se) {
+            s_log.fine(String.format("User #:%d already follows User #:%d",followerPersonId, followeePersonId) );
+        }
 
 
     }
@@ -69,12 +77,12 @@ public class ChallengeController {
     @ResponseStatus(value = HttpStatus.OK)
     public void unfollow(@PathVariable Long followeePersonId) {
         ChallengeUserPrincipal currentUser = getChallengeUserPrincipal();
-        Person follower = currentUser.getPerson();
-        Person followee = challengeService.getPersonById(followeePersonId);
+        Long followerPersonId = currentUser.getPerson().getId();
 
-        List<Person> currentFollowers = challengeService.getFollowersByPerson(followee);
-        if(!currentFollowers.contains(follower)){
-            challengeService.deleteFollowerFollowee(follower, followee);
+        try {
+            challengeService.deleteFollowerFollowee(followerPersonId, followeePersonId);
+        } catch (SQLException se) {
+            s_log.fine(String.format("User #:%d has not followed User #:%d yet!",followerPersonId, followeePersonId));
         }
 
     }
